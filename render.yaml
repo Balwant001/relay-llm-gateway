@@ -1,0 +1,33 @@
+# Optional Render Blueprint: Render -> New -> Blueprint -> pick this repo.
+# (You can also create the three resources by hand; see README.)
+databases:
+  - name: relay-db
+    plan: free
+    databaseName: relay
+    user: relay
+services:
+  - type: web
+    name: relay-gateway
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: relay-db, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: relay-cache, property: connectionString }
+      - key: ADMIN_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+  - type: keyvalue
+    name: relay-cache
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru

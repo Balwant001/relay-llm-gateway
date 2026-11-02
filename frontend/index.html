@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relay · LLM gateway</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{color-scheme:light;--ink:#12141c;--side:#12141c;--bg:#f5f6f8;--panel:#fff;--line:#dfe3ea;--muted:#667085;--blue:#2f5bea;--teal:#0f9d8a;--amber:#c97a06;--rose:#d6455d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "DM Sans",system-ui,sans-serif;display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+h1,h2,h3,.num{font-family:Outfit,"DM Sans",sans-serif}
+h2{margin:0 0 4px;font-size:22px}h3{margin:0 0 10px;font-size:16px}
+button,input,select,textarea{font:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+aside{background:var(--side);color:#cfd5e2;padding:22px 18px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;color:#fff}
+.brand svg{width:30px;height:30px}.brand b{font:700 24px Outfit,sans-serif}
+.brand small{display:block;color:#8b93a7;font-size:12px;margin-top:-4px}
+nav{display:flex;flex-direction:column;gap:4px}
+nav button{background:none;border:0;color:#cfd5e2;text-align:left;padding:9px 12px;border-radius:8px;cursor:pointer}
+nav button:hover{background:#1e2230}nav button.on{background:#2a3150;color:#fff}
+.conn{margin-top:auto;display:grid;gap:8px}
+.conn label{font-size:12px;color:#8b93a7;display:block;margin-bottom:2px}
+.conn input{width:100%;background:#1b1f2c;border:1px solid #2c3246;border-radius:8px;color:#fff;padding:7px 9px}
+.status{display:flex;align-items:center;gap:8px;font-size:13px;color:#8b93a7}
+.dot{width:9px;height:9px;border-radius:50%;background:#667085}.dot.up{background:#34d3b5}.dot.down{background:#f4728a}
+main{padding:28px 32px 60px;max-width:1080px;width:100%}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi .num{font-size:26px;font-weight:700;display:block;line-height:1.2}.kpi span{color:var(--muted);font-size:13px}
+label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 3px}
+input.t,select.t,textarea.t{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink)}
+textarea.t{min-height:90px;resize:vertical}
+button.b{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500;color:var(--ink)}
+button.b:hover{background:#eef1f6}button.b:disabled{opacity:.55;cursor:wait}
+button.p{background:var(--blue);border-color:var(--blue);color:#fff}button.p:hover{background:#2449c4}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
+.chip{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:500;background:#eef1f6;color:#344054}
+.chip.hit{background:#dff5f1;color:#0b7a6b}.chip.fb{background:#fcefd6;color:#8a5200}.chip.err{background:#fde6ea;color:#a3283d}.chip.live{background:#e4ebff;color:#2449c4}
+.out{white-space:pre-wrap;background:#f7f8fb;border:1px solid var(--line);border-radius:8px;padding:12px;min-height:70px;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:13px}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:8px;background:#e9edf3;border-radius:4px;overflow:hidden;min-width:80px}.bar i{display:block;height:100%;background:var(--blue)}
+.note{color:var(--muted);font-size:13px;margin-top:8px}
+.msg{min-height:22px;margin-top:10px;font-size:14px;color:var(--muted)}.msg.bad{color:var(--rose)}
+.keybox{background:#fff8e6;border:1px solid #f0d58c;border-radius:8px;padding:10px 12px;margin-top:12px;word-break:break-all}
+.winner{background:#e4f7f3;color:#0b6b5d;padding:10px 14px;border-radius:8px;font-weight:600;margin:12px 0}
+.view{display:none}.view.on{display:block}
+.hero{background:var(--ink);color:#fff;border-radius:14px;padding:26px;margin-bottom:16px}.hero h2{font-size:28px}.hero p{color:#aab2c5;margin:6px 0 0;max-width:640px}
+.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.feat p{margin:0;color:var(--muted);font-size:14px}
+ol.steps{margin:0;padding-left:22px}ol.steps li{padding:4px 0}
+a.btn{display:inline-block;text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:9px 16px;font-weight:500;color:var(--ink);background:#fff}
+a.btn.main{background:var(--blue);border-color:var(--blue);color:#fff}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}.conn{margin-top:0}main{padding:18px 16px 50px}.kpis{grid-template-columns:repeat(2,1fr)}.grid2,.feat{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2f5bea"/><path d="M8 11h9a4 4 0 010 8H9m0 0l4-4m-4 4l4 4" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Relay</b><small>LLM gateway</small></div></div>
+  <nav id="nav" aria-label="Sections">
+    <button data-v="home" class="on">Home</button><button data-v="play">Playground</button><button data-v="over">Overview</button>
+    <button data-v="keys">API keys</button><button data-v="evals">Prompts and evals</button><button data-v="about">About and contact</button>
+  </nav>
+  <div class="conn">
+    <div class="status"><span class="dot" id="dot"></span><span id="st">Connecting</span></div>
+    <div><label for="apiUrl">Backend URL</label><input id="apiUrl" spellcheck="false"></div>
+    <div><label for="adminKey">Admin key</label><input id="adminKey" type="password" autocomplete="off"></div>
+    <div><label for="apiKey">API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="gw_..."></div>
+  </div>
+</aside>
+
+<main>
+<!-- HOME -->
+<section class="view on" id="v-home">
+  <div class="hero"><h2>One API for every LLM provider</h2><p>Relay sits between your apps and Claude, OpenAI, and Groq. It caches repeated questions, fails over when a provider goes down, tracks every token and dollar, and lets you compare prompts and models before shipping them.</p></div>
+  <div class="feat">
+    <div class="card"><h3>Caching</h3><p>Exact and similarity caching means repeated or near-identical prompts cost nothing and return in milliseconds.</p></div>
+    <div class="card"><h3>Reliability</h3><p>Automatic failover across providers, a circuit breaker for failing models, and per-key rate limits and budgets.</p></div>
+    <div class="card"><h3>Visibility</h3><p>Token and cost tracking per request and per key, Prometheus metrics, and an eval harness for prompt and model comparison.</p></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>How to use this demo</h3>
+    <ol class="steps">
+      <li>Enter the admin key in the sidebar (prefilled on localhost). Open <b>API keys</b> and create a key, or click <b>Get a demo key</b> in the Playground.</li>
+      <li>In the <b>Playground</b>, send "What is the capital of France?". It is a live call.</li>
+      <li>Send it again. It returns from the cache with zero cost. Try "What is the capital of Franse?" to see a similarity hit.</li>
+      <li>Choose the model <b>mock-flaky</b> to watch the gateway fail over to a working model.</li>
+      <li>Open <b>Overview</b> for cache hit rate, spend, savings, and latency. Open <b>Prompts and evals</b> to compare two models on a test set.</li>
+    </ol>
+    <p class="note">Without provider API keys, the demo uses built-in mock models, so it works fully offline. Add ANTHROPIC_API_KEY, OPENAI_API_KEY, or GROQ_API_KEY on the backend to use real models.</p>
+  </div>
+</section>
+
+<!-- PLAYGROUND -->
+<section class="view" id="v-play">
+  <h2>Playground</h2><p class="sub">Send requests through the gateway and see exactly how each one was served.</p>
+  <div class="card">
+    <div class="grid2">
+      <div><label class="f" for="model">Model</label><select class="t" id="model"></select></div>
+      <div><label class="f">Options</label><label><input type="checkbox" id="useCache" checked> Use cache</label> &nbsp; <label><input type="checkbox" id="doStream" checked> Stream response</label></div>
+    </div>
+    <label class="f" for="prompt">Prompt</label>
+    <textarea class="t" id="prompt">What is the capital of France?</textarea>
+    <div class="row"><button class="b p" id="send">Send</button><button class="b" id="demoKey">Get a demo key</button>
+      <button class="b" data-q="What is the capital of France?">Capital of France</button><button class="b" data-q="What is the capital of Franse?">Same, with a typo</button><button class="b" data-q="What is 12 * 7?">12 * 7</button></div>
+    <div class="msg" id="pmsg" role="status"></div>
+    <div class="out" id="out" aria-live="polite">The response appears here.</div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="card"><h3>This session</h3><table><thead><tr><th>Prompt</th><th>Served by</th><th>Cache</th><th class="n">Latency</th><th class="n">Cost</th></tr></thead><tbody id="hist"><tr><td colspan="5" class="note">No requests yet.</td></tr></tbody></table></div>
+</section>
+
+<!-- OVERVIEW -->
+<section class="view" id="v-over">
+  <h2>Overview</h2><p class="sub">Live gateway statistics from the usage log.</p>
+  <div class="row" style="margin:0 0 12px"><button class="b" id="refresh">Refresh</button></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid2">
+    <div class="card"><h3>Requests by provider</h3><div id="prov" class="note">No data yet.</div></div>
+    <div class="card"><h3>Cache and failover</h3><div id="cachebox" class="note">No data yet.</div></div>
+  </div>
+  <div class="card"><h3>Recent requests</h3><div style="overflow-x:auto"><table><thead><tr><th>Time</th><th>Key</th><th>Model</th><th>Cache</th><th class="n">Tokens</th><th class="n">Cost</th><th class="n">Latency</th><th>Status</th></tr></thead><tbody id="logs"></tbody></table></div></div>
+</section>
+
+<!-- KEYS -->
+<section class="view" id="v-keys">
+  <h2>API keys</h2><p class="sub">Each key has its own rate limit and optional monthly budget.</p>
+  <div class="card"><div class="grid2"><div><label class="f" for="kname">Name</label><input class="t" id="kname" value="my-app"></div>
+    <div><label class="f" for="krate">Requests per minute</label><input class="t" id="krate" type="number" value="60" min="1"></div></div>
+    <label class="f" for="kbudget">Monthly budget in USD (optional)</label><input class="t" id="kbudget" type="number" step="0.01" min="0" placeholder="No limit">
+    <div class="row"><button class="b p" id="mkKey">Create key</button></div><div class="msg" id="kmsg"></div><div id="newKey"></div></div>
+  <div class="card"><h3>Existing keys</h3><table><thead><tr><th>Name</th><th>Prefix</th><th class="n">Limit/min</th><th class="n">Budget</th><th class="n">Requests</th><th class="n">Spend</th><th></th></tr></thead><tbody id="keyRows"></tbody></table></div>
+</section>
+
+<!-- EVALS -->
+<section class="view" id="v-evals">
+  <h2>Prompts and evals</h2><p class="sub">Version your prompts, then run a test set against two variants and compare quality, latency, and cost.</p>
+  <div class="card"><h3>Prompt library</h3>
+    <div class="grid2"><div><label class="f" for="pname">Name</label><input class="t" id="pname" value="concise-answer"></div>
+    <div><label class="f" for="ptpl">Template (use {{input}})</label><input class="t" id="ptpl" value="Answer in one short sentence. {{input}}"></div></div>
+    <div class="row"><button class="b" id="savePrompt">Save as new version</button></div><div class="msg" id="pmsg2"></div>
+    <table><thead><tr><th>Name</th><th class="n">Version</th><th>Template</th><th></th></tr></thead><tbody id="promptRows"></tbody></table></div>
+  <div class="card"><h3>Run an evaluation</h3>
+    <div class="grid2">
+      <div><label class="f" for="la">Variant A label</label><input class="t" id="la" value="A: fast model"><label class="f" for="ma">Model</label><select class="t modelSel" id="ma"></select><label class="f" for="ta">Template</label><textarea class="t" id="ta">Answer concisely: {{input}}</textarea></div>
+      <div><label class="f" for="lb">Variant B label</label><input class="t" id="lb" value="B: smart model"><label class="f" for="mb">Model</label><select class="t modelSel" id="mb"></select><label class="f" for="tb">Template</label><textarea class="t" id="tb">Answer concisely: {{input}}</textarea></div>
+    </div>
+    <label class="f" for="cases">Test cases, one per line: input =&gt; expected (use | to require several words)</label>
+    <textarea class="t" id="cases" style="min-height:150px">What is 12 * 7? => 84
+What is 45 + 18? => 63
+What is 100 - 38? => 62
+What is the capital of France? => Paris
+What is the capital of Japan? => Tokyo
+What is the capital of India? => New Delhi
+What is the capital of Canada? => Ottawa
+Sentiment of this review: "I love this product, it is amazing" => Positive
+Sentiment of this review: "This was terrible and I hate it" => Negative
+What is 9 * 9? => 81</textarea>
+    <div class="grid2"><div><label class="f" for="scoring">Scoring</label><select class="t" id="scoring"><option value="contains">Contains expected text</option><option value="exact">Exact match</option><option value="f1">Word overlap (F1)</option></select></div></div>
+    <div class="row"><button class="b p" id="runEval">Run evaluation</button></div><div class="msg" id="emsg" role="status"></div><div id="evalOut"></div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="view" id="v-about">
+  <h2>About and contact</h2><p class="sub">Who built Relay and how to reach them.</p>
+  <div class="card"><h3>What Relay does</h3><p style="margin:0">Relay is an LLM gateway: one API in front of several model providers. It adds caching, failover, authentication, rate limits, budgets, cost tracking, metrics, and prompt and model evaluation, which are the things teams build around LLMs once they go to production. Built with FastAPI, PostgreSQL, Redis, Docker, Prometheus, and pytest.</p></div>
+  <div class="card"><h3>About the builder</h3><p style="margin:0 0 10px"><b>Balwant Yadav</b>, Python and AI/ML developer based in New Delhi, India. B.Tech in Artificial Intelligence and Machine Learning from Guru Gobind Singh Indraprastha University (2025). Backend developer intern (Python, FastAPI) at Anantixia Technologies and software developer intern (Java, PostgreSQL) at BISAG-N under MeitY, Government of India.</p><p style="margin:0">I build backend systems and machine learning applications, and made Relay to show how LLM-powered products are run reliably and affordably in production.</p></div>
+  <div class="card"><h3>Contact</h3><div class="row" style="margin-top:0"><a class="btn main" href="mailto:12119011621.aiml@gmail.com">12119011621.aiml@gmail.com</a><a class="btn" href="https://www.linkedin.com/in/balwant-yadav" target="_blank" rel="noopener">LinkedIn</a><a class="btn" href="https://github.com/Balwant001" target="_blank" rel="noopener">GitHub</a></div></div>
+</section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+$("#apiUrl").value = localStorage.getItem("rl_url") || window.API_URL || "http://localhost:8000";
+$("#adminKey").value = sessionStorage.getItem("rl_admin") || (local ? "admin-dev-key" : "");
+$("#apiKey").value = sessionStorage.getItem("rl_key") || "";
+$("#apiUrl").onchange = () => { localStorage.setItem("rl_url", base()); boot(); };
+$("#adminKey").onchange = () => sessionStorage.setItem("rl_admin", $("#adminKey").value);
+$("#apiKey").onchange = () => sessionStorage.setItem("rl_key", $("#apiKey").value);
+const base = () => $("#apiUrl").value.trim().replace(/\/$/, "");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const usd = x => x === 0 ? "$0" : "$" + (x < 0.01 ? x.toFixed(6) : x.toFixed(4));
+const say = (id, t, bad) => { const e = $(id); e.textContent = t; e.className = "msg" + (bad ? " bad" : ""); };
+
+async function api(path, {method = "GET", body, admin, key} = {}) {
+  const headers = {"Content-Type": "application/json"};
+  if (admin) headers["X-Admin-Key"] = $("#adminKey").value;
+  if (key) headers["Authorization"] = "Bearer " + $("#apiKey").value;
+  const r = await fetch(base() + path, {method, headers, body: body ? JSON.stringify(body) : undefined});
+  if (!r.ok) { let d = ""; try { d = (await r.json()).detail; } catch {} throw new Error(r.status + " " + (typeof d === "string" ? d : JSON.stringify(d))); }
+  return r.json();
+}
+
+// ---- navigation
+function show(v) { $$(".view").forEach(e => e.classList.toggle("on", e.id === "v-" + v)); $$("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+  if (v === "over") loadOverview(); if (v === "keys") loadKeys(); if (v === "evals") loadPrompts(); }
+$$("#nav button").forEach(b => b.onclick = () => show(b.dataset.v));
+
+// ---- connection + models
+async function boot() {
+  try { const h = await api("/health"); $("#dot").className = "dot up"; $("#st").textContent = "Online · " + h.store + " store"; }
+  catch { $("#dot").className = "dot down"; $("#st").textContent = "Backend unreachable"; return; }
+  const ms = await api("/v1/models");
+  const opts = '<option value="auto">auto (best available)</option>' + ms.map(m => `<option value="${esc(m.model)}">${esc(m.model)} · ${esc(m.provider)}</option>`).join("");
+  $("#model").innerHTML = opts; $$(".modelSel").forEach((s, i) => { s.innerHTML = ms.map(m => `<option value="${esc(m.model)}">${esc(m.model)}</option>`).join(""); });
+  const names = ms.map(m => m.model); if (names.includes("mock-fast")) $("#ma").value = "mock-fast"; if (names.includes("mock-smart")) $("#mb").value = "mock-smart";
+  if (names.includes("mock-smart")) $("#model").value = "mock-smart";
+}
+
+// ---- playground
+const hist = [];
+$$("[data-q]").forEach(b => b.onclick = () => { $("#prompt").value = b.dataset.q; });
+async function ensureKey() {
+  if ($("#apiKey").value) return true;
+  say("#pmsg", "Create or paste an API key first (use Get a demo key).", true); return false;
+}
+$("#demoKey").onclick = async () => {
+  try { const k = await api("/admin/keys", {method: "POST", admin: true, body: {name: "demo-" + Math.random().toString(36).slice(2, 6), rate_limit_per_min: 600}});
+    $("#apiKey").value = k.key; sessionStorage.setItem("rl_key", k.key); say("#pmsg", "Demo key created and saved in the sidebar for this tab."); }
+  catch (e) { say("#pmsg", "Could not create a key: " + e.message + ". Check the admin key in the sidebar.", true); }
+};
+function chips(r) {
+  const c = [`<span class="chip">${esc(r.provider)} · ${esc(r.model)}</span>`];
+  c.push(r.cached === "none" ? '<span class="chip live">live call</span>' : `<span class="chip hit">cache hit: ${esc(r.cached)}</span>`);
+  if (r.fallback_used) c.push('<span class="chip fb">served by fallback</span>');
+  c.push(`<span class="chip">${r.input_tokens} in / ${r.output_tokens} out tokens</span><span class="chip">cost ${usd(r.cost_usd)}</span>`);
+  if (r.saved_usd) c.push(`<span class="chip hit">saved ${usd(r.saved_usd)}</span>`);
+  c.push(`<span class="chip">${r.latency_ms} ms</span>`);
+  (r.attempts || []).filter(a => !a.ok).forEach(a => c.push(`<span class="chip err">${esc(a.model)} failed: ${esc(a.error)}</span>`));
+  return c.join("");
+}
+$("#send").onclick = async () => {
+  if (!await ensureKey()) return;
+  const body = {model: $("#model").value, messages: [{role: "user", content: $("#prompt").value}], use_cache: $("#useCache").checked, stream: $("#doStream").checked};
+  const btn = $("#send"); btn.disabled = true; $("#out").textContent = ""; $("#chips").innerHTML = ""; say("#pmsg", "");
+  try {
+    let final;
+    if (body.stream) {
+      const r = await fetch(base() + "/v1/chat", {method: "POST", headers: {"Content-Type": "application/json", Authorization: "Bearer " + $("#apiKey").value}, body: JSON.stringify(body)});
+      if (!r.ok) { let d = ""; try { d = (await r.json()).detail; } catch {} throw new Error(r.status + " " + (typeof d === "string" ? d : JSON.stringify(d))); }
+      const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "";
+      for (;;) { const {done, value} = await rd.read(); if (done) break; buf += dec.decode(value, {stream: true});
+        const parts = buf.split("\n\n"); buf = parts.pop();
+        for (const p of parts) { if (!p.startsWith("data: ")) continue; const ev = JSON.parse(p.slice(6));
+          if (ev.type === "delta") $("#out").textContent += ev.text; else if (ev.type === "done") final = ev; else if (ev.type === "error") throw new Error(ev.error); } }
+    } else { final = await api("/v1/chat", {method: "POST", body, key: true}); $("#out").textContent = final.content; }
+    $("#chips").innerHTML = chips(final);
+    hist.unshift(final.cached !== undefined ? {p: $("#prompt").value, ...final} : final);
+    $("#hist").innerHTML = hist.slice(0, 8).map(h => `<tr><td>${esc(h.p.slice(0, 50))}</td><td>${esc(h.model)}${h.fallback_used ? " (fallback)" : ""}</td><td>${h.cached === "none" ? "miss" : esc(h.cached)}</td><td class="n">${h.latency_ms} ms</td><td class="n">${usd(h.cost_usd)}</td></tr>`).join("");
+  } catch (e) { say("#pmsg", e.message, true); $("#out").textContent = "Request failed."; } finally { btn.disabled = false; }
+};
+
+// ---- overview
+const kpi = (n, l) => `<div class="kpi"><span class="num">${esc(n)}</span><span>${esc(l)}</span></div>`;
+async function loadOverview() {
+  try {
+    const [s, logs] = await Promise.all([api("/admin/stats", {admin: true}), api("/admin/logs?limit=15", {admin: true})]);
+    $("#kpis").innerHTML = kpi(s.requests, "Requests") + kpi((s.cache_hit_rate * 100).toFixed(1) + "%", "Cache hit rate") + kpi(usd(s.cost_usd), "Spend") + kpi(usd(s.saved_usd) + " (" + (s.savings_pct * 100).toFixed(0) + "%)", "Saved by cache")
+      + kpi(s.p50_latency_ms + " ms", "p50 latency") + kpi(s.p95_latency_ms + " ms", "p95 latency") + kpi(s.fallbacks, "Served by fallback") + kpi(s.errors, "Errors");
+    const total = Object.values(s.by_provider).reduce((a, b) => a + b.requests, 0) || 1;
+    $("#prov").innerHTML = Object.entries(s.by_provider).map(([k, v]) => `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;color:var(--ink)"><span>${esc(k)}</span><span>${v.requests} requests · ${usd(v.cost_usd)}</span></div><div class="bar"><i style="width:${v.requests / total * 100}%"></i></div></div>`).join("") || "No data yet.";
+    $("#cachebox").innerHTML = `Exact hits: <b>${s.exact_hits}</b> · Similarity hits: <b>${s.semantic_hits}</b><br>Average latency when cached: <b>${s.avg_cached_latency_ms} ms</b> vs live: <b>${s.avg_live_latency_ms} ms</b><br>Requests rescued by failover: <b>${s.fallbacks}</b>`;
+    $("#logs").innerHTML = logs.map(l => `<tr><td>${esc(l.time.slice(11, 19))}</td><td>${esc(l.key)}${l.source === "eval" ? " (eval)" : ""}</td><td>${esc(l.model || l.requested_model)}${l.fallback_used ? " ↩" : ""}</td><td>${l.cache === "none" ? "miss" : esc(l.cache)}</td><td class="n">${l.tokens}</td><td class="n">${usd(l.cost_usd)}</td><td class="n">${l.latency_ms} ms</td><td>${l.status === "ok" ? "ok" : '<span class="chip err">error</span>'}</td></tr>`).join("");
+  } catch (e) { $("#kpis").innerHTML = `<div class="msg bad">${esc(e.message)}. Check the admin key in the sidebar.</div>`; }
+}
+$("#refresh").onclick = loadOverview;
+
+// ---- keys
+async function loadKeys() {
+  try { const ks = await api("/admin/keys", {admin: true});
+    $("#keyRows").innerHTML = ks.map(k => `<tr><td>${esc(k.name)}${k.is_active ? "" : ' <span class="chip err">revoked</span>'}</td><td>${esc(k.prefix)}…</td><td class="n">${k.rate_limit_per_min}</td><td class="n">${k.monthly_budget_usd ?? "none"}</td><td class="n">${k.requests}</td><td class="n">${usd(k.cost_usd)}</td><td>${k.is_active ? `<button class="b" data-rev="${k.id}">Revoke</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="7" class="note">No keys yet.</td></tr>';
+    $$("[data-rev]").forEach(b => b.onclick = async () => { await api(`/admin/keys/${b.dataset.rev}/revoke`, {method: "POST", admin: true}); loadKeys(); });
+  } catch (e) { say("#kmsg", e.message + ". Check the admin key in the sidebar.", true); }
+}
+$("#mkKey").onclick = async () => {
+  try { const b = $("#kbudget").value; const k = await api("/admin/keys", {method: "POST", admin: true, body: {name: $("#kname").value, rate_limit_per_min: +$("#krate").value, monthly_budget_usd: b === "" ? null : +b}});
+    $("#newKey").innerHTML = `<div class="keybox"><b>${esc(k.note)}</b><br><code>${esc(k.key)}</code></div>`; $("#apiKey").value = k.key; sessionStorage.setItem("rl_key", k.key); say("#kmsg", "Key created and loaded into the sidebar."); loadKeys(); }
+  catch (e) { say("#kmsg", e.message, true); }
+};
+
+// ---- prompts + evals
+async function loadPrompts() {
+  try { const ps = await api("/admin/prompts", {admin: true});
+    $("#promptRows").innerHTML = ps.map((p, i) => `<tr><td>${esc(p.name)}</td><td class="n">v${p.version}</td><td>${esc(p.template)}</td><td><button class="b" data-a="${i}">Use in A</button> <button class="b" data-b="${i}">Use in B</button></td></tr>`).join("") || '<tr><td colspan="4" class="note">No prompts yet.</td></tr>';
+    $$("[data-a]").forEach(b => b.onclick = () => $("#ta").value = ps[b.dataset.a].template); $$("[data-b]").forEach(b => b.onclick = () => $("#tb").value = ps[b.dataset.b].template);
+  } catch (e) { say("#pmsg2", e.message + ". Check the admin key in the sidebar.", true); }
+}
+$("#savePrompt").onclick = async () => {
+  try { const r = await api("/admin/prompts", {method: "POST", admin: true, body: {name: $("#pname").value, template: $("#ptpl").value}}); say("#pmsg2", `Saved ${r.name} as version ${r.version}.`); loadPrompts(); }
+  catch (e) { say("#pmsg2", e.message, true); }
+};
+$("#runEval").onclick = async () => {
+  const cases = $("#cases").value.split("\n").map(l => l.trim()).filter(Boolean).map(l => { const i = l.lastIndexOf("=>"); const exp = l.slice(i + 2).trim(); return {input: l.slice(0, i).trim(), expected: exp.includes("|") ? exp.split("|").map(x => x.trim()) : exp}; });
+  const btn = $("#runEval"); btn.disabled = true; say("#emsg", "Running " + cases.length * 2 + " calls…"); $("#evalOut").innerHTML = "";
+  try {
+    const r = await api("/admin/evals", {method: "POST", admin: true, body: {name: `${$("#la").value} vs ${$("#lb").value}`, scoring: $("#scoring").value, cases, variants: [
+      {label: $("#la").value, model: $("#ma").value, template: $("#ta").value}, {label: $("#lb").value, model: $("#mb").value, template: $("#tb").value}]}});
+    say("#emsg", "");
+    const best = Math.max(...r.variants.map(v => v.mean_score));
+    $("#evalOut").innerHTML = (r.winner ? `<div class="winner">Winner: ${esc(r.winner)}</div>` : '<div class="winner" style="background:#eef1f6;color:#344054">Tie: no clear winner</div>')
+      + `<table><thead><tr><th>Variant</th><th>Model</th><th class="n">Score</th><th class="n">Passed</th><th class="n">Avg latency</th><th class="n">p95</th><th class="n">Cost</th></tr></thead><tbody>${r.variants.map(v => `<tr><td>${esc(v.label)}</td><td>${esc(v.model)}</td><td class="n"><b>${(v.mean_score * 100).toFixed(0)}%</b></td><td class="n">${(v.pass_rate * 100).toFixed(0)}%</td><td class="n">${v.avg_latency_ms} ms</td><td class="n">${v.p95_latency_ms} ms</td><td class="n">${usd(v.total_cost_usd)}</td></tr>`).join("")}</tbody></table>`
+      + `<h3 style="margin-top:18px">Case by case</h3><table><thead><tr><th>Input</th><th>Expected</th>${r.variants.map(v => `<th>${esc(v.label)}</th>`).join("")}</tr></thead><tbody>${r.cases.map(c => `<tr><td>${esc(c.input)}</td><td>${esc([].concat(c.expected).join(" + "))}</td>${c.results.map(x => `<td>${x.score >= 1 ? "✓" : x.score > 0 ? (x.score * 100).toFixed(0) + "%" : "✗"} ${esc(x.error || x.output)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  } catch (e) { say("#emsg", e.message, true); } finally { btn.disabled = false; }
+};
+boot();
+</script>
+</body>
+</html>
