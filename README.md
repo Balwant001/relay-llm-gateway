@@ -210,3 +210,13 @@ The following features were manually tested:
 ### API Documentation
 
 ![Relay LLM Gateway Swagger UI](screenshots/swagger-ui.png)
+
+### Successful Chat Completion
+
+**Request:**
+
+![Chat Request](screenshots/chat-request.png)
+
+**Response:**
+
+![Chat Response](screenshots/chat-response.png) 
