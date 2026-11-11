@@ -39,7 +39,7 @@ flowchart LR
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements-dev.txt
-uvicorn src.main:app --reload            # API and docs at http://localhost:8000/docs
+python -m uvicorn src.main:app --reload            # API and docs at http://localhost:8000/docs
 ```
 
 Second terminal, for the dashboard:
@@ -48,7 +48,7 @@ Second terminal, for the dashboard:
 python -m http.server 5500 --directory frontend     # open http://localhost:5500
 ```
 
-Locally the gateway uses SQLite and an in-memory cache, so there is nothing else to install. In the dashboard click **Playground → Get a demo key**, then **Send**. The admin key defaults to `admin-dev-key`.
+Locally the gateway uses SQLite and an in-memory cache, so there is nothing else to install. In the dashboard click **Playground → Get a demo key**, then **Send**. The admin key defaults to `your-local-development-secret`.
 
 Run the tests: `pytest -q`
 
@@ -58,7 +58,7 @@ Set any of these before starting the server (PowerShell example):
 
 ```powershell
 $env:ANTHROPIC_API_KEY="sk-ant-..."; $env:GROQ_API_KEY="gsk_..."; $env:OPENAI_API_KEY="sk-..."
-uvicorn src.main:app --reload
+python -m uvicorn src.main:app --reload
 ```
 
 Model names and prices live in `src/pricing.py`. The prices are approximate, so check each provider's pricing page.
@@ -67,7 +67,7 @@ Model names and prices live in `src/pricing.py`. The prices are approximate, so 
 
 ```bash
 # create a key (admin)
-curl -X POST localhost:8000/admin/keys -H "X-Admin-Key: admin-dev-key" -H "Content-Type: application/json" \
+curl -X POST localhost:8000/admin/keys -H "X-Admin-Key: your-local-development-secret" -H "Content-Type: application/json" \
      -d '{"name":"my-app","rate_limit_per_min":60,"monthly_budget_usd":5}'
 
 # chat (use the key from above)
@@ -165,7 +165,48 @@ src/
   evals.py       scoring and summaries
   metrics.py     Prometheus metrics
   pricing.py     model registry and prices
-tests/           19 tests (API, cache, failover, limits, streaming, evals, provider adapters)
+tests/           22 tests (API, cache, failover, limits, streaming, evals, provider adapters)
 scripts/         bench.py, locustfile.py
 frontend/        dashboard (deploy to Vercel)
+
+## Security
+
+- Admin endpoints require the `X-Admin-Key` header.
+- Set the `ADMIN_KEY` environment variable before starting the application.
+- If `ADMIN_KEY` is not configured, admin endpoints return HTTP 503.
+- Requests with an incorrect admin key return HTTP 401.
+- API keys are stored as hashes rather than plain text.
+
+Never commit real API keys or admin secrets to the repository.
+
+## Testing and Verification
+
+The automated test suite covers API behavior, caching, provider failover, rate limits, streaming, and security.
+
+Run the tests with:
+
+```powershell
+pytest -q
+Latest test results:
+- 22 tests passed
+- 1 deprecation warning (Starlette/httpx TestClient)
+
+### Manual Verification
+
+The following features were manually tested:
+
+- Health and model endpoints
+- API key authentication
+- Admin authentication
+- Chat completion using the mock provider
+- Provider fallback
+- Exact response caching
+- Streaming responses
+- Usage and cost tracking
+- Prometheus metrics
 ```
+## Screenshots
+
+### API Documentation
+
+![Relay LLM Gateway Swagger UI](screenshots/swagger-ui.png)
