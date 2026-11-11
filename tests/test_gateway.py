@@ -203,3 +203,35 @@ def test_anthropic_adapter_parses_response_and_http_errors():
     bad = AnthropicProvider("k", transport=httpx.MockTransport(lambda r: httpx.Response(529, text="overloaded")))
     with pytest.raises(ProviderError):
         asyncio.run(bad.complete("claude-sonnet-4-6", [{"role": "user", "content": "hi"}], 0, 10))
+
+
+
+def test_admin_rejects_when_key_not_configured(client, monkeypatch):
+    from src import security
+
+    monkeypatch.setattr(security.cfg, "ADMIN_KEY", "")
+    response = client.get("/admin/stats")
+
+    assert response.status_code == 503
+
+
+def test_admin_rejects_wrong_key(client, monkeypatch):
+    from src import security
+
+    monkeypatch.setattr(security.cfg, "ADMIN_KEY", "test-admin")
+    response = client.get(
+        "/admin/stats",
+        headers={"X-Admin-Key": "wrong-key"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_admin_accepts_correct_key(client, monkeypatch):
+    from src import security
+
+    monkeypatch.setattr(security.cfg, "ADMIN_KEY", "test-admin")
+    response = client.get("/admin/stats", headers=ADMIN)
+
+    assert response.status_code == 200
+

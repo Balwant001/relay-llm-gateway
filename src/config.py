@@ -15,7 +15,14 @@ def _db_url() -> str:
 
 DATABASE_URL = _db_url()
 REDIS_URL = os.getenv("REDIS_URL", "")  # empty -> in-memory store (fine for one instance / local dev)
-ADMIN_KEY = os.getenv("ADMIN_KEY", "admin-dev-key")
+ADMIN_KEY = os.getenv("ADMIN_KEY", "")
+
+if not ADMIN_KEY:
+    import warnings
+    warnings.warn(
+        "ADMIN_KEY is not set. Admin endpoints are not safe for deployment.",
+        RuntimeWarning,
+    )
 CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",")]
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")

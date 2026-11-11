@@ -72,5 +72,10 @@ async def require_key(request: Request, authorization: str | None = Header(None)
 
 
 async def require_admin(x_admin_key: str | None = Header(None)) -> None:
-    if not x_admin_key or not secrets.compare_digest(x_admin_key, cfg.ADMIN_KEY):
+    if not cfg.ADMIN_KEY:
+        raise HTTPException(503, "Admin access is not configured")
+
+    if not x_admin_key or not secrets.compare_digest(
+        x_admin_key, cfg.ADMIN_KEY
+    ):
         raise HTTPException(401, "Invalid admin key")
